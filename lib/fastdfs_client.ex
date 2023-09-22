@@ -1,5 +1,11 @@
 defmodule FastdfsClient do
 
+  defmacro __using__() do
+    quote do
+      unquote(connect())
+    end
+  end
+
   def connect() do
     stracker  = Application.get_all_env(:fdfs_server)
     FastdfsClient.Pool.start_link(stracker)
