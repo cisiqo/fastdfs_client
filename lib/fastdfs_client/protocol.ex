@@ -65,6 +65,10 @@ defmodule FastdfsClient.Protocol do
           {:ok, {ip_addr, port, group_name, store_path_index}}
         end
 
+      {:error, :closed} ->
+        Kernel.send(FastdfsClient.Registry, {:closed, {mod, socket}})
+        {:error, "Fastdfs tracker server connected failed"}
+
       {:error, _} = error ->
         error
     end
@@ -90,6 +94,10 @@ defmodule FastdfsClient.Protocol do
           ip_addr = FastdfsClient.Helper.parse_string_proto(<<ip_addr :: size(15 * 8)>>)
           {:ok, {ip_addr, port, group_name}}
         end
+
+      {:error, :closed} ->
+        Kernel.send(FastdfsClient.Registry, {:closed, {mod, socket}})
+        {:error, "Fastdfs tracker server connected failed"}
 
       {:error, _} = error ->
         error
@@ -147,7 +155,6 @@ defmodule FastdfsClient.Protocol do
         end
 
       {:error, _} ->
-        :inet.setopts(socket, [{:active, :once}])
         {:error,"File not exist or remote_file_id has wrong!"}
     end
   end

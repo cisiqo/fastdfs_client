@@ -4,14 +4,11 @@ defmodule FastdfsClient.Connection do
   @connect_retry_backoff_default 5_000
   @connect_retry_backoff_max 300_000
   @default_transport FastdfsClient.Protocol
-  @default_storage FastdfsClient.Storage
 
   defstruct host: nil,
             owner: nil,
-            storage: nil,
             port: nil,
             socket: nil,
-            pool_size: nil,
             socket_opts: [],
             timeout: nil,
             connect_retry_backoff: @connect_retry_backoff_default,
@@ -25,7 +22,6 @@ defmodule FastdfsClient.Connection do
       args
       |> Keyword.put_new(:timeout, @timeout)
       |> Keyword.put_new(:transport, @default_transport)
-      |> Keyword.put_new(:storage, @default_storage)
       |> Keyword.put_new(:owner, self())
 
       Connection.start_link(__MODULE__, {struct(__MODULE__, args), self()})

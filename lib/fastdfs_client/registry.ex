@@ -1,6 +1,6 @@
 defmodule FastdfsClient.Registry do
-require Logger
 
+  require Logger
   use GenServer
 
   def checkout() do
@@ -24,19 +24,15 @@ require Logger
   def handle_call(:checkout, _from, {pool, queue}) do
     case :queue.out_r(queue) do
       {:empty, _} ->
-        try do
           case :ets.match_object(pool, :"$1") do
             [] ->
-              raise "Fastdfs server running away"
+              {:reply, [], {pool, queue}}
 
             all ->
               queue = :queue.from_list(all)
               {{:value, item}, queue1} = :queue.out_r(queue)
               {:reply, item, {pool, queue1}}
           end
-        rescue
-          e in RuntimeError -> e
-        end
 
       {{:value, item}, queue1} ->
         {:reply, item, {pool, queue1}}
@@ -49,15 +45,18 @@ require Logger
     {:noreply, {pool, queue1}}
   end
 
-  def handle_info({:DOWN, _ref, _type, pid, _reason}, {pool, queue}) do
-    obj = :ets.match_object(pool, {:_, pid})
+  def handle_info({:closed, {mod, socket}}, {pool, queue}) do
+    obj = :ets.match_object(pool, {mod, socket})
     {item} = List.to_tuple(obj)
     :ets.delete_object(pool, item)
     queue1 = :queue.delete(item, queue)
     {:noreply, {pool, queue1}}
   end
 
-  def handle_info(_msg, state) do
+  def handle_info(msg, state) do
+    Logger.warning(fn ->
+      "#{inspect(msg)}"
+    end)
     {:noreply, state}
   end
 
