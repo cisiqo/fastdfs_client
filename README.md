@@ -1,6 +1,6 @@
 # FastdfsClient
 
-**TODO: Add description**
+A fastdfs client with elixir
 
 ## Installation
 
@@ -15,7 +15,29 @@ def deps do
 end
 ```
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/fastdfs_client>.
+## Configuration
+
+Add fastdfs server config to `config.exs`
+
+```
+config :fastdfs_client, :fdfs_server,
+      host: "172.16.21.100",
+      port: 22122
+```
+
+OR
+
+```
+config :fastdfs_client, :fdfs_server,
+      endpoints: [
+         {"172.16.21.100", 22122},
+         {"172.16.21.101", 22122}
+      ]
+```
+
+## Function
+
+* upload_file/1
+* download_file/1
+* delete_file/1
 
