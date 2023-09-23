@@ -1,4 +1,5 @@
 defmodule FastdfsClient.Registry do
+require Logger
 
   use GenServer
 
@@ -23,10 +24,19 @@ defmodule FastdfsClient.Registry do
   def handle_call(:checkout, _from, {pool, queue}) do
     case :queue.out_r(queue) do
       {:empty, _} ->
-        all = :ets.match_object(pool, :"$1")
-        queue = :queue.from_list(all)
-        {{:value, item}, queue1} = :queue.out_r(queue)
-        {:reply, item, {pool, queue1}}
+        try do
+          case :ets.match_object(pool, :"$1") do
+            [] ->
+              raise "Fastdfs server running away"
+
+            all ->
+              queue = :queue.from_list(all)
+              {{:value, item}, queue1} = :queue.out_r(queue)
+              {:reply, item, {pool, queue1}}
+          end
+        rescue
+          e in RuntimeError -> e
+        end
 
       {{:value, item}, queue1} ->
         {:reply, item, {pool, queue1}}

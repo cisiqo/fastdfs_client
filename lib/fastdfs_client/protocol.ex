@@ -52,16 +52,21 @@ defmodule FastdfsClient.Protocol do
   def get_upload_storage({mod, socket}) do
     :ok = mod.send(socket, <<0 :: size(64), @tracker_proto_cmd_service_query_store_without_group_one, 0>>)
     :inet.setopts(socket, [{:active, false}])
-    recv = mod.recv(socket, 0)
-    {:ok, <<pkg_len :: 64-integer, cmd :: 8-integer, status :: 8-integer, body :: binary>>} = recv
-    :inet.setopts(socket, [{:active, :once}])
-    if status != 0 and cmd == @tracker_proto_cmd_resp do
-      {:error, "recv data header status != 0"}
-    else
-      <<group_name :: size(16 * 8), ip_addr :: size(15 * 8), port :: 64-integer, store_path_index :: 8-integer>> = String.slice(body, 0, pkg_len)
-      group_name = FastdfsClient.Helper.parse_string_proto(<<group_name :: size(16 * 8)>>)
-      ip_addr = FastdfsClient.Helper.parse_string_proto(<<ip_addr :: size(15 * 8)>>)
-      {:ok, {ip_addr, port, group_name, store_path_index}}
+    case mod.recv(socket, 0) do
+      {:ok, _} = recv ->
+        {:ok, <<pkg_len :: 64-integer, cmd :: 8-integer, status :: 8-integer, body :: binary>>} = recv
+        :inet.setopts(socket, [{:active, :once}])
+        if status != 0 and cmd == @tracker_proto_cmd_resp do
+          {:error, "Get storage server failed"}
+        else
+          <<group_name :: size(16 * 8), ip_addr :: size(15 * 8), port :: 64-integer, store_path_index :: 8-integer>> = String.slice(body, 0, pkg_len)
+          group_name = FastdfsClient.Helper.parse_string_proto(<<group_name :: size(16 * 8)>>)
+          ip_addr = FastdfsClient.Helper.parse_string_proto(<<ip_addr :: size(15 * 8)>>)
+          {:ok, {ip_addr, port, group_name, store_path_index}}
+        end
+
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -73,16 +78,21 @@ defmodule FastdfsClient.Protocol do
     body = <<group_name :: binary, remote_file_id :: binary>>
     :ok = mod.send(socket, body)
     :inet.setopts(socket, [{:active, false}])
-    recv = mod.recv(socket, 0)
-    {:ok, <<pkg_len :: 64-integer, cmd :: 8-integer, status :: 8-integer, body :: binary>>} = recv
-    :inet.setopts(socket, [{:active, :once}])
-    if status != 0 and cmd == @tracker_proto_cmd_resp do
-      {:error, "recv data header status != 0"}
-    else
-      <<group_name :: size(16 * 8), ip_addr :: size(15 * 8), port :: 64-integer>> = String.slice(body, 0, pkg_len)
-      group_name = FastdfsClient.Helper.parse_string_proto(<<group_name :: size(16 * 8)>>)
-      ip_addr = FastdfsClient.Helper.parse_string_proto(<<ip_addr :: size(15 * 8)>>)
-      {:ok, {ip_addr, port, group_name}}
+    case mod.recv(socket, 0) do
+      {:ok, _} = recv ->
+        {:ok, <<pkg_len :: 64-integer, cmd :: 8-integer, status :: 8-integer, body :: binary>>} = recv
+        :inet.setopts(socket, [{:active, :once}])
+        if status != 0 and cmd == @tracker_proto_cmd_resp do
+          {:error, "Get storage server failed"}
+        else
+          <<group_name :: size(16 * 8), ip_addr :: size(15 * 8), port :: 64-integer>> = String.slice(body, 0, pkg_len)
+          group_name = FastdfsClient.Helper.parse_string_proto(<<group_name :: size(16 * 8)>>)
+          ip_addr = FastdfsClient.Helper.parse_string_proto(<<ip_addr :: size(15 * 8)>>)
+          {:ok, {ip_addr, port, group_name}}
+        end
+
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -92,19 +102,24 @@ defmodule FastdfsClient.Protocol do
     status = 0
     header = <<pkg_len :: 64-integer, cmd :: 8-integer, status :: 8-integer>>
     :ok = mod.send(socket, header)
-    file_ext_name = FastdfsClient.Helper.encode_string_proto(file_ext_name, 6 * 8)
+    file_ext_name = FastdfsClient.Helper.encode_string_proto(file_ext_name, 6)
     body = <<store_path_index :: 8-integer, file_size :: 64-integer, file_ext_name :: binary, file :: binary>>
     :ok = mod.send(socket, body)
     :inet.setopts(socket, [{:active, false}])
-    recv = mod.recv(socket, 0)
-    {:ok, <<pkg_len :: 64-integer, cmd :: size(8), status :: 8-integer, body :: binary>>} = recv
-    :inet.setopts(socket, [{:active, :once}])
-    if status != 0 and cmd == @tracker_proto_cmd_resp do
-      {:error, "recv data header status != 0"}
-    else
-      <<group_name :: size(16 * 8), fdfs_remote_id :: binary>> = String.slice(body, 0, pkg_len)
-      group_name = FastdfsClient.Helper.parse_string_proto(<<group_name :: size(16 * 8)>>)
-      {:ok, group_name <> "/" <> fdfs_remote_id}
+    case mod.recv(socket, 0) do
+      {:ok, _} = recv ->
+        {:ok, <<pkg_len :: 64-integer, cmd :: size(8), status :: 8-integer, body :: binary>>} = recv
+        :inet.setopts(socket, [{:active, :once}])
+        if status != 0 and cmd == @tracker_proto_cmd_resp do
+          {:error, "Upload file failed"}
+        else
+          <<group_name :: size(16 * 8), fdfs_remote_id :: binary>> = String.slice(body, 0, pkg_len)
+          group_name = FastdfsClient.Helper.parse_string_proto(<<group_name :: size(16 * 8)>>)
+          {:ok, group_name <> "/" <> fdfs_remote_id}
+        end
+
+      {:error, _} = error ->
+        error
     end
   end
 
@@ -122,12 +137,18 @@ defmodule FastdfsClient.Protocol do
     :inet.setopts(socket, [{:active, false}])
     recv_header = mod.recv(socket, 10)
     {:ok, <<pkg_len :: 64-integer, cmd :: size(8), status :: 8-integer>>} = recv_header
-    {:ok, content} = mod.recv(socket, pkg_len)
-    :inet.setopts(socket, [{:active, :once}])
-    if status != 0 and cmd == @tracker_proto_cmd_resp do
-      {:error, "recv data header status != 0"}
-    else
-      {:ok, content}
+    case mod.recv(socket, pkg_len, 1_000) do
+      {:ok, content} ->
+        :inet.setopts(socket, [{:active, :once}])
+        if status != 0 and cmd == @tracker_proto_cmd_resp do
+          {:error, "Download file failed"}
+        else
+          {:ok, content}
+        end
+
+      {:error, _} ->
+        :inet.setopts(socket, [{:active, :once}])
+        {:error,"File not exist or remote_file_id has wrong!"}
     end
   end
 
@@ -141,13 +162,18 @@ defmodule FastdfsClient.Protocol do
     body = <<group_name :: binary, remote_file_id :: binary>>
     :ok = mod.send(socket, body)
     :inet.setopts(socket, [{:active, false}])
-    recv = mod.recv(socket, 0)
-    {:ok, <<_pkg_len :: 64-integer, cmd :: size(8), status :: 8-integer>>} = recv
-    :inet.setopts(socket, [{:active, :once}])
-    if status != 0 and cmd == @tracker_proto_cmd_resp do
-      {:error, "recv data header status != 0"}
-    else
-      :ok
+    case mod.recv(socket, 0, 1_000) do
+      {:ok, _} = recv ->
+        {:ok, <<_pkg_len :: 64-integer, cmd :: size(8), status :: 8-integer>>} = recv
+        :inet.setopts(socket, [{:active, :once}])
+        if status != 0 and cmd == @tracker_proto_cmd_resp do
+          {:error, "Delete file failed"}
+        else
+          :ok
+        end
+
+      {:error, _} ->
+        {:error,"File not exist or remote_file_id has wrong!"}
     end
   end
 
@@ -159,7 +185,7 @@ defmodule FastdfsClient.Protocol do
   def handle_message({:tcp, socket, data}, %{socket: {:gen_tcp, socket}} = conn) do
     <<_pkg_len :: size(64), cmd :: size(8), status :: 8-integer, body :: binary>> = data
     if status != 0 and cmd == @tracker_proto_cmd_resp do
-      {:error, "recv data header status != 0"}
+      {:error, "Fastdfs tracker has someting wrong"}
     else
       {:ok, conn, body}
     end
