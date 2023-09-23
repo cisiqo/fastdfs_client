@@ -11,13 +11,6 @@ defmodule FastdfsClient.Pool do
 
   @impl true
   def init(args) do
-    case FastdfsClient.Registry.start_link() do
-      {:ok, pid} ->
-        pid
-
-      {:error, {:already_started, pid}} ->
-        pid
-    end
     endpoints = parse_endpoints(args)
     children = make_childrens(endpoints, args, [])
     Supervisor.init(children, strategy: :one_for_one)

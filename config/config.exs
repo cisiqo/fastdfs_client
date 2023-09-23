@@ -16,13 +16,13 @@ import Config
 
 # Sample configuration
 #
-#     config :fdfs_server,
+#     config :fastdfs_client, :fdfs_server,
 #       host: "172.16.21.100",
 #       port: 22122
 
 # Sample configuration with endpoint
 #
-#     config :fdfs_server
+#     config :fastdfs_client, :fdfs_server,
 #       endpoints: [
 #         {"172.16.21.100", 22122},
 #         {"172.16.21.101", 22122}
@@ -36,5 +36,5 @@ import Config
 #
 #     import_config "#{Mix.env}.exs"
 
-config :fdfs_server,
+config :fastdfs_client, :fdfs_server,
   host: "172.16.21.100"
