@@ -31,19 +31,6 @@ defmodule FastdfsClient.Protocol do
     end
   end
 
-  def disconnect(info, {mod, socket}) do
-    :ok = mod.close(socket)
-
-    case info do
-      {:close, from} ->
-        Connection.reply(from, :ok)
-
-      {:error, _} = error ->
-        error
-
-    end
-  end
-
   def active_test(%Conn{socket: {mod, socket}} = conn) do
     :ok = mod.send(socket, <<0 :: size(64), @fdfs_proto_cmd_active_test, 0>>)
     {:ok, conn}
@@ -184,9 +171,20 @@ defmodule FastdfsClient.Protocol do
     end
   end
 
-  def send(%Conn{socket: {mod, socket}} = conn, data) do
-    :ok = mod.send(socket, data)
-    {:ok, conn}
+  def disconnect(info, {mod, socket}) do
+    :ok = mod.close(socket)
+
+    case info do
+      {:close, from} ->
+        Connection.reply(from, :ok)
+
+      {:error, :closed} ->
+        Logger.debug(fn -> "Connection closed~n" end)
+
+      {:error, reason} ->
+        reason = :inet.format_error(reason)
+        Logger.debug(fn -> "Connection error: #{reason}~n" end)
+    end
   end
 
   def handle_message({:tcp, socket, data}, %{socket: {:gen_tcp, socket}} = conn) do

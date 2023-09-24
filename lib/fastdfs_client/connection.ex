@@ -53,7 +53,7 @@ defmodule FastdfsClient.Connection do
     case transport.connect(conn) do
       {:ok, conn} ->
         transport.active_test(conn)
-        FastdfsClient.Registry.checkin(conn)
+        FastdfsClient.Registry.checkin(conn.socket)
         {:ok, conn}
 
       {:error, _} = error ->

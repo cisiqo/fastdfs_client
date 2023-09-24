@@ -10,6 +10,7 @@ defmodule FastdfsClient.Tracker do
       conn_tracker ->
         case FastdfsClient.Protocol.get_upload_storage(conn_tracker) do
           {:ok, {ip_addr, port, group_name, store_path_index}} ->
+            FastdfsClient.Registry.checkin(conn_tracker)
             case FastdfsClient.Storage.connect(ip_addr, port) do
               {:ok, conn_storage} ->
                 FastdfsClient.Protocol.upload_file({conn_storage, group_name, store_path_index}, file, file_ext_name, file_size)
@@ -32,6 +33,7 @@ defmodule FastdfsClient.Tracker do
       conn_tracker ->
         case FastdfsClient.Protocol.get_fetch_storage(conn_tracker, group_name, remote_file_id) do
           {:ok, {ip_addr, port, group_name}} ->
+            FastdfsClient.Registry.checkin(conn_tracker)
             case FastdfsClient.Storage.connect(ip_addr, port) do
               {:ok, conn_storage} ->
                 FastdfsClient.Protocol.download_file(conn_storage, group_name, remote_file_id)
@@ -54,6 +56,7 @@ defmodule FastdfsClient.Tracker do
       conn_tracker ->
         case FastdfsClient.Protocol.get_fetch_storage(conn_tracker, group_name, remote_file_id) do
           {:ok, {ip_addr, port, group_name}} ->
+            FastdfsClient.Registry.checkin(conn_tracker)
             case FastdfsClient.Storage.connect(ip_addr, port) do
               {:ok, conn_storage} ->
                 FastdfsClient.Protocol.delete_file(conn_storage, group_name, remote_file_id)

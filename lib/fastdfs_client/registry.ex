@@ -40,8 +40,8 @@ defmodule FastdfsClient.Registry do
   end
 
   def handle_cast({:checkin, conn}, {pool, queue}) do
-    :ets.insert(pool, conn.socket)
-    queue1 = :queue.in_r(conn.socket, queue)
+    :ets.insert(pool, conn)
+    queue1 = :queue.in_r(conn, queue)
     {:noreply, {pool, queue1}}
   end
 
